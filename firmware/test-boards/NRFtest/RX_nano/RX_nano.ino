@@ -14,7 +14,7 @@ RF24 radio(7, 8); // CE, CSN
 const byte address[6] = "00001";
 
 void setup() {
-  pinMode(2, OUTPUT);
+  pinMode(4, OUTPUT);
   Serial.begin(9600);
   radio.begin();
   radio.openReadingPipe(0, address);
@@ -22,9 +22,9 @@ void setup() {
   radio.startListening();
 
   for (int i = 0; i < 10; i++) {
-    digitalWrite(2, HIGH);
+    digitalWrite(4, HIGH);
     delay(50);  
-    digitalWrite(2, LOW);
+    digitalWrite(4, LOW);
     delay(50);  
   }
   Serial.println("pronto...");
@@ -37,9 +37,9 @@ void loop() {
     Serial.println(stato); 
     if (stato == 1) {
       
-      digitalWrite(2, HIGH);
+      digitalWrite(4, HIGH);
     } else {
-      digitalWrite(2, LOW);
+      digitalWrite(4, LOW);
     }
   }
 }

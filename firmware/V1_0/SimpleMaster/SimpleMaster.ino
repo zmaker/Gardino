@@ -1,3 +1,13 @@
+/**
+ * Gardino - Master Board
+ * Use: MKR1010 WiFi
+ * 
+ * ver: 1.0
+ * Read google calendar and check for "ZONA 1" event. 
+ * If event present:
+ *   - activate master relè 
+ *   - activate satellite relè (for zona 1)
+ */
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>

@@ -30,7 +30,7 @@ StaticJsonDocument<200> doc;
 
 //NRF24 setup
 RF24 radio(7, 6); // CE, CSN
-const byte address[6] = "00001";
+const byte address[6] = NRF_MASTER_ADDR;
 
 void setup() {  
   Serial.begin(9600);
@@ -38,25 +38,26 @@ void setup() {
     delay(1);
   }
 
-  //NRF24
+  //Setup NRF24 module
   radio.begin();
   radio.openWritingPipe(address);
   radio.setPALevel(RF24_PA_MIN);
   radio.stopListening();
-  Serial.println("NRF - Ready");
+  info("NRF - Ready\n");
 
+  //setup Wifi
   if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!\nSTOPPED");    
+    info("Communication with WiFi module failed!\nSTOPPED\n");    
     while (true);
   }
 
   while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);    
+    debug("Attempting to connect to SSID: ");
+    debug(ssid);    
     status = WiFi.begin(ssid, pass);
     delay(5000);
   }
-  Serial.println("Connected to wifi");
+  info("Connected to wifi\n");
 }
 
 int stato = 0;
@@ -64,7 +65,7 @@ int stato = 0;
 void loop() {
   switch(stato){
     case 0:
-      //Wait to start: send command via Serial Monitor
+      //waiting... RTC to call server
       waitcmd();     
       break;
     case 1:
@@ -90,6 +91,7 @@ void loop() {
 }
 
 boolean FIRST = true;
+
 void go(int st){
   stato = st;
   FIRST = true;
@@ -98,9 +100,18 @@ void go(int st){
 
 void waitcmd() {
   if (FIRST) {
-    Serial.println("Press ENTER to start call");
+    info("Press ENTER to start call\n");
     FIRST = false;
+    t1 = millis();
   }
+
+  if ((millis() - t1) == (SCHEDULING_TIME_S * 1000)) {
+    debug(F("Calling server\n"));
+    //go(1)
+    t1 = millis(); //rescheduling
+  }
+
+  
   while (Serial.available()){
     char c = Serial.read();
     Serial.print(c);
@@ -112,13 +123,12 @@ void waitcmd() {
 
 void call() {
   if (FIRST) {
-    Serial.println("Calling...");
-    Serial.print(server);
-    Serial.println(path);    
+    //debug(String("Calling..."+server+"\n"));
+    //debug(path+"\n");    
     FIRST = false;
   }
   if (client.connect(server, 443)) {
-    Serial.println("connected to server");
+    //debug("connected to server\n");
     // Make a HTTP request:
     client.println("GET "+path+" HTTP/1.1");
     client.println("Host: "+String(server));
@@ -144,27 +154,29 @@ void getHeader() {
     } else if ((requestCode == 302) && (line.indexOf("Location:") >= 0)) {
       int pos = line.indexOf(" ");
       String newaddr = line.substring(pos+1);
-      Serial.println("--------");
-      Serial.println(newaddr);
+      debug("redirected to: ");
+      debug(newaddr+"\n");
       int s = line.indexOf("//")+2;
       int f = line.indexOf("/", s) + 1;
       String str = line.substring(s, f);
       str.toCharArray(server, str.length());
-      Serial.print("server="); Serial.println(server);      
+      //debug("server="+server+"\n");      
       path = line.substring(f-1);
-      Serial.print("path="); Serial.println(path);      
+      //debug("path="+path+"\n");      
       
-    } else if (line.indexOf("Connection: close") >= 0){
-      Serial.println("decide che fare...");
+    } else if (line.indexOf("Connection: close") >= 0){      
       if (requestCode == 302) {
         //redirect  
+        debug("follow redirect\n");
         client.flush();
         go(1);
       } else if (requestCode == 200){
         //leggo i dati  
+        debug("read data\n");
         go(3);
       } else {
         //non gestito
+        debug("unknow\n");
         client.flush();
       }
     }
@@ -190,7 +202,7 @@ int getRequestCode(String line) {
 int linea;
 void readdata(){
   if (FIRST) {    
-    Serial.println("Reading data fron service");    
+    Serial.println("Reading data from service");    
     FIRST = false;
     linea = 0;
   }
